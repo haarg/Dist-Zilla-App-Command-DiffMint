@@ -1,0 +1,14 @@
+/.build/
+/MANIFEST
+/MANIFEST.bak
+/MYMETA.json
+/MYMETA.json.lock
+/MYMETA.yml
+/Makefile
+/Makefile.old
+/blib/
+/cover_db/
+/pm_to_blib
+/Dist-Zilla-App-Command-DiffMint-*/
+/Dist-Zilla-App-Command-DiffMint-*.tar
+/Dist-Zilla-App-Command-DiffMint-*.tar.gz
