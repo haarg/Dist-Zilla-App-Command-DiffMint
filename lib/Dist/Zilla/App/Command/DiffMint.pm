@@ -73,8 +73,6 @@ sub execute ($self, $opt, $arg) {
     next
       if !defined $diff;
 
-    print $diff;
-
     if ($color) {
       print { $out } _colorize($diff);
     }
