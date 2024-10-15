@@ -59,16 +59,18 @@ sub execute ($self, $opt, $arg) {
 
     my $mint = {
       name      => "mint/$name",
+      realname  => "mint/$name",
       encoding  => $file->encoding,
       content   => $file->content,
       mode      => sprintf("%06o", $file->mode | 0100644),
       sha       => _sha($file->encoded_content),
     };
 
-    my $disk = $self->_file_data($self->zilla->root->child($name));
-    $disk->{name} = "dist/$name";
+    my $disk = $self->_file_data($self->zilla->root, $name);
 
-    my $diff = $reverse ? _diff($disk, $mint) : _diff($mint, $disk);
+    my ($old, $new) = $reverse ? ($disk, $mint) : ($mint, $disk);
+
+    my $diff = _diff($old, $new);
 
     next
       if !defined $diff;
@@ -82,35 +84,44 @@ sub execute ($self, $opt, $arg) {
   }
 }
 
-sub _file_data ($self, $file) {
-  my $disk = {};
-  if (open my $fh, '<:raw', $file) {
+sub _file_data ($self, $root, $name) {
+  my $file = $root->child($name);
+
+  if (open my $fh, '<:raw', $file->stringify) {
     my $mode = (stat($fh))[2] | 0100644;
     my $binary = -B $fh;
-    $disk->{mode} = sprintf "%06o", $mode;
     my $content = do { local $/; <$fh> };
-    $disk->{sha} = _sha($content);
+    my $sha = _sha($content);
+    my $encoding;
     if ($binary) {
-      $disk->{encoding} = 'bytes';
-      $disk->{content} = $content;
+      $encoding = 'bytes';
     }
     else {
       require Encode::Guess;
-      my $encoding = Encode::Guess::guess_encoding($content, qw(UTF-8 Latin1 ASCII));
-      $disk->{encoding} = $encoding->name;
-      $disk->{content} = $encoding->decode($content);
+      my $encoder = Encode::Guess::guess_encoding($content, qw(UTF-8 Latin1 ASCII));
+      $encoding = $encoder->name;
+      $content = $encoder->decode($content);
     }
     close $fh;
-  }
-  else {
-    $disk->{content} = '';
-    $disk->{name} = '/dev/null';
-    $disk->{mode} = '';
-    $disk->{sha} = '0' x 40;
-    $disk->{encoding} = 'UTF-8';
+
+    return {
+      name      => "dist/$name",
+      realname  => "dist/$name",
+      content   => $content,
+      mode      => sprintf("%06o", $mode),
+      sha       => $sha,
+      encoding  => $encoding,
+    };
   }
 
-  return $disk;
+  return {
+    name      => "dist/$name",
+    realname  => '/dev/null',
+    content   => '',
+    mode      => '',
+    sha       => '0' x 40,
+    encoding  => 'UTF-8',
+  };
 }
 
 sub _minter ($self, $opt_provider, $opt_profile) {
@@ -187,14 +198,14 @@ sub _diff ($old, $new) {
   my $text_diff;
   if ($old->{encoding} eq 'bytes' || $new->{encoding} eq 'bytes') {
     if ($old->{content} ne $new->{content}) {
-      $text_diff = "Binary files $old->{name} and $new->{name} differ\n";
+      $text_diff = "Binary files $old->{realname} and $new->{realname} differ\n";
     }
   }
   else {
     $text_diff = Text::Diff::diff(\$old->{content}, \$new->{content}, {
       STYLE => 'Unified',
-      FILENAME_A => $old->{name},
-      FILENAME_B => $new->{name},
+      FILENAME_A => $old->{realname},
+      FILENAME_B => $new->{realname},
     }) // '';
   }
 
