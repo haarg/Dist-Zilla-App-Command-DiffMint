@@ -1,6 +1,6 @@
 Revision history for Perl extension Dist-Zilla-App-Command-DiffMint
 
-{{ $NEXT }}
+v0.1.3  2024-10-15
   - fix file headers when files don't exist to properly use /dev/null
   - fix mode headers to match git
 
