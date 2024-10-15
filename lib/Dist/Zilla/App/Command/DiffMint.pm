@@ -1,7 +1,7 @@
 use v5.20; use warnings; use experimental qw(signatures postderef);
 package Dist::Zilla::App::Command::DiffMint;
 
-our $VERSION = 'v0.1.3';
+our $VERSION = 'v0.1.4';
 
 use Dist::Zilla::App -command;
 
