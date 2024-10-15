@@ -289,7 +289,7 @@ Dist::Zilla::App::Command::CompareMint - Compare files to what a minting profile
 
 =head1 SYNOPSIS
 
-  $ dzil compare-mint [ --provider=<provider> ] [ --profile=<profile> ]
+  $ dzil diff-mint [ --provider=<provider> ] [ --profile=<profile> ]
 
 =head1 DESCRIPTION
 
