@@ -24,7 +24,7 @@ interpreted by a human.
 - --color\[=&lt;when>\]
 
     Show colored diff. If `<when>` is not specified or is `always`, color
-    will be used. If `<when>` is `auto` or when the option is not specifed,
+    will be used. If `<when>` is `auto` or when the option is not specified,
     color will be used when the output is a terminal.
 
 - --no-pager
