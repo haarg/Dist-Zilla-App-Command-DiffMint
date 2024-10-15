@@ -1,6 +1,6 @@
 Revision history for Perl extension Dist-Zilla-App-Command-DiffMint
 
-{{ $NEXT }}
+v0.1.2  2024-10-15
   - fix duplicate output of diffs
   - remove debugging warning
 
