@@ -189,9 +189,9 @@ sub _diff ($old, $new) {
   require Text::Diff;
   my $mode_diff = '';
   if ($new->{mode} ne $old->{mode}) {
-    $mode_diff .= "old mode $old->{mode}\n"
+    $mode_diff .= "old file mode $old->{mode}\n"
       if $old->{mode};
-    $mode_diff .= "new mode $new->{mode}\n"
+    $mode_diff .= "new file mode $new->{mode}\n"
       if $new->{mode};
   }
 
