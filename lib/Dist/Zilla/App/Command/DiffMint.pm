@@ -14,6 +14,7 @@ sub opt_spec { (
   [ 'provider|P=s', 'name of the profile provider to use' ],
   [ 'color:s',      'colorize output' ],
   [ 'reverse!',     'reverse diff' ],
+  [ 'no-pager',     'avoid pager' ],
 ) }
 
 sub execute ($self, $opt, $arg) {
@@ -25,6 +26,20 @@ sub execute ($self, $opt, $arg) {
     : ($opt->color eq '' || $opt->color eq 'always')  ? 1
     : $opt->color eq 'never'                          ? 0
     : die q[Error: option 'color' expects "always", "auto", or "never", not "] . $opt->color . qq["!\n];
+
+  my $out
+    = $opt->no_pager ? \*STDOUT
+    : !-t *STDOUT    ? \*STDOUT
+    : do {
+      local $ENV{LESS} = $ENV{LESS} || 'SRFX';
+      my $pager = $ENV{PAGER} || 'less';
+      if (open my $fh, '|-', $pager) {
+        $fh;
+      }
+      else {
+        \*STDOUT;
+      }
+    };
 
   my $zilla = $self->zilla;
 
@@ -61,10 +76,10 @@ sub execute ($self, $opt, $arg) {
     print $diff;
 
     if ($color) {
-      print _colorize($diff);
+      print { $out } _colorize($diff);
     }
     else {
-      print $diff;
+      print { $out } $diff;
     }
   }
 }
@@ -296,6 +311,11 @@ interpreted by a human.
 Show colored diff. If C<< <when> >> is not specified or is C<always>, color
 will be used. If C<< <when> >> is C<auto> or when the option is not specified,
 color will be used when the output is a terminal.
+
+=item --no-pager
+
+Avoid using a pager. By default, C<$PAGER> or C<less> will be used if the
+output is a terminal.
 
 =item --provider=<provider>
 

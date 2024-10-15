@@ -27,6 +27,11 @@ interpreted by a human.
     will be used. If `<when>` is `auto` or when the option is not specifed,
     color will be used when the output is a terminal.
 
+- --no-pager
+
+    Avoid using a pager. By default, `$PAGER` or `less` will be used if the
+    output is a terminal.
+
 - --provider=&lt;provider>
 
     The minting provider to compare against. If not specified, it will try to use
