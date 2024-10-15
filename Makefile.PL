@@ -21,6 +21,7 @@ my %WriteMakefileArgs = (
     "Dist::Zilla::App" => "6.000",
     "Dist::Zilla::Stash::Rights" => "6.000",
     "Moose" => "2.0000",
+    "Term::ANSIColor" => 0,
     "Text::Diff" => 0,
     "namespace::autoclean" => 0
   },
@@ -47,6 +48,7 @@ my %FallbackPrereqs = (
   "IO::Handle" => 0,
   "IPC::Open3" => 0,
   "Moose" => "2.0000",
+  "Term::ANSIColor" => 0,
   "Test::More" => "0.88",
   "Text::Diff" => 0,
   "namespace::autoclean" => 0

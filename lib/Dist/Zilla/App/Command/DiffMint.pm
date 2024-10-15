@@ -12,6 +12,7 @@ sub command_names { 'diff-mint' }
 sub opt_spec { (
   [ 'profile|p=s',  'name of the profile to use' ],
   [ 'provider|P=s', 'name of the profile provider to use' ],
+  [ 'color:s',      'colorize output' ],
   [ 'reverse!',     'reverse diff' ],
 ) }
 
@@ -19,6 +20,11 @@ sub execute ($self, $opt, $arg) {
   my $provider = $opt->provider;
   my $profile = $opt->profile;
   my $reverse = $opt->reverse;
+  my $color
+    = (!defined $opt->color || $opt->color eq 'auto') ? -t *STDOUT
+    : ($opt->color eq '' || $opt->color eq 'always')  ? 1
+    : $opt->color eq 'never'                          ? 0
+    : die q[Error: option 'color' expects "always", "auto", or "never", not "] . $opt->color . qq["!\n];
 
   my $zilla = $self->zilla;
 
@@ -53,6 +59,13 @@ sub execute ($self, $opt, $arg) {
       if !defined $diff;
 
     print $diff;
+
+    if ($color) {
+      print _colorize($diff);
+    }
+    else {
+      print $diff;
+    }
   }
 }
 
@@ -191,6 +204,44 @@ sub _diff ($old, $new) {
   );
 }
 
+sub _colorize ($diff) {
+  require Term::ANSIColor;
+  my $out = '';
+  while ($diff =~ /\G([^\n]*)(?:\n|\z)/gc) {
+    my $line = $1;
+    my $color;
+    if ($line =~ /^(?:diff|old mode|new mode|index)/) {
+      $color = 'bold bright_white'
+    }
+    elsif ($line =~ /^(?:---|\+\+\+)/) {
+      $color = 'bold bright_white';
+    }
+    elsif ($line =~ /^@@/) {
+      $color = 'cyan';
+    }
+    elsif ($line =~ /^\+/) {
+      $color = 'green';
+    }
+    elsif ($line =~ /^\-/) {
+      $color = 'red';
+    }
+    elsif ($line =~ /^ /) {
+      # nothing
+    }
+    else {
+      # ???
+    }
+
+    if ($color) {
+      $out .= Term::ANSIColor::colored([$color], $line) . "\n";
+    }
+    else {
+      $out .= $line . "\n";
+    }
+  }
+  return $out;
+}
+
 my $authors_meta;
 sub _authors_stash ($self, $authors) {
   $authors_meta ||= do {
@@ -239,6 +290,12 @@ interpreted by a human.
 =head1 OPTIONS
 
 =over 4
+
+=item --color[=<when>]
+
+Show colored diff. If C<< <when> >> is not specified or is C<always>, color
+will be used. If C<< <when> >> is C<auto> or when the option is not specified,
+color will be used when the output is a terminal.
 
 =item --provider=<provider>
 
