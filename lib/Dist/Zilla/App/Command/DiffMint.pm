@@ -68,7 +68,7 @@ sub execute ($self, $opt, $arg) {
 
     my $disk = $self->_file_data($self->zilla->root, $name);
 
-    my ($old, $new) = $reverse ? ($disk, $mint) : ($mint, $disk);
+    my ($old, $new) = $reverse ? ($mint, $disk) : ($disk, $mint);
 
     my $diff = _diff($old, $new);
 
