@@ -1,6 +1,6 @@
 Revision history for Perl extension Dist-Zilla-App-Command-DiffMint
 
-{{ $NEXT }}
+v0.2.0  2024-10-16
   - reverse the order of the diff
   - allow specifying files to diff rather than entire dist
 
