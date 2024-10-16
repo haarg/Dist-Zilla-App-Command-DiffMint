@@ -41,8 +41,6 @@ sub execute ($self, $opt, $arg) {
       }
     };
 
-  my $zilla = $self->zilla;
-
   my $minter = $self->_minter($provider, $profile);
 
   $_->gather_files       for @{ $minter->plugins_with(-FileGatherer) };
@@ -52,21 +50,47 @@ sub execute ($self, $opt, $arg) {
 
   require Digest::SHA;
 
-  for my $file ($minter->files->@*) {
-    my $name = $file->name;
-    next
-      if $name =~ m{^lib/|^t/|^Changes$|^Changelog$}i;
+  my $root = $self->zilla->root;
 
-    my $mint = {
+  my %files = map +($_->name => $_), $minter->files->@*;
+  my @files = map $_->name, $minter->files->@*;
+  if (@$arg) {
+    my @matched;
+    for my $arg (@$arg) {
+      my $dir = $arg =~ s{/\z}{};
+
+      if ($files{$arg}) {
+        push @matched, $arg;
+      }
+      elsif (-f $root->child($arg)) {
+        push @matched, $arg;
+      }
+      elsif (my @sub = grep m{\A$dir/}, @files) {
+        push @matched, @sub;
+      }
+      else {
+        die "Unknown file or directory $arg!\n";
+      }
+    }
+    @files = @matched;
+  }
+  else {
+      @files = grep !m{^lib/|^t/|^Changes$|^Changelog$}i, @files;
+  }
+
+  for my $name (@files) {
+    my $file = $files{$name};
+
+    my $mint = $file ? {
       name      => "mint/$name",
       realname  => "mint/$name",
       encoding  => $file->encoding,
       content   => $file->content,
       mode      => sprintf("%06o", $file->mode | 0100644),
       sha       => _sha($file->encoded_content),
-    };
+    } : _null("mint/$name");
 
-    my $disk = $self->_file_data($self->zilla->root, $name);
+    my $disk = $self->_file_data($root, $name);
 
     my ($old, $new) = $reverse ? ($mint, $disk) : ($disk, $mint);
 
@@ -82,6 +106,17 @@ sub execute ($self, $opt, $arg) {
       print { $out } $diff;
     }
   }
+}
+
+sub _null ($name) {
+  return {
+    name      => $name,
+    realname  => '/dev/null',
+    content   => '',
+    mode      => '',
+    sha       => '0' x 40,
+    encoding  => 'UTF-8',
+  };
 }
 
 sub _file_data ($self, $root, $name) {
@@ -114,14 +149,7 @@ sub _file_data ($self, $root, $name) {
     };
   }
 
-  return {
-    name      => "dist/$name",
-    realname  => '/dev/null',
-    content   => '',
-    mode      => '',
-    sha       => '0' x 40,
-    encoding  => 'UTF-8',
-  };
+  return _null("dist/$name");
 }
 
 sub _minter ($self, $opt_provider, $opt_profile) {
@@ -297,7 +325,7 @@ Dist::Zilla::App::Command::CompareMint - Compare files to what a minting profile
 
 =head1 SYNOPSIS
 
-  $ dzil diff-mint [ --provider=<provider> ] [ --profile=<profile> ]
+  $ dzil diff-mint [ --provider=<provider> ] [ --profile=<profile> ] [ <file> ]
 
 =head1 DESCRIPTION
 
