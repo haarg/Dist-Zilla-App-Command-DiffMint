@@ -162,18 +162,23 @@ sub _file_data ($self, $root, $name) {
     my $mode = (stat($fh))[2] | 0100644;
     my $binary = -B $fh;
     my $content = do { local $/; <$fh> };
+    close $fh;
     my $sha = _sha($content);
     my $encoding;
     if ($binary) {
       $encoding = 'bytes';
     }
     else {
-      require Encode::Guess;
-      my $encoder = Encode::Guess::guess_encoding($content, qw(UTF-8 Latin1 ASCII));
-      $encoding = $encoder->name;
-      $content = $encoder->decode($content);
+      require Encode;
+      local $@;
+      eval {
+        $content = Encode::decode('UTF-8', $content, Encode::FB_CROAK());
+        $encoding = 'UTF-8';
+        1;
+      } or do {
+        $encoding = 'ISO-8859-1';
+      };
     }
-    close $fh;
 
     return {
       name      => "dist/$name",
