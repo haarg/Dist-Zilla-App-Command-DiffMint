@@ -23,8 +23,18 @@ sub _zilla ($self) {
   return $self->{_zilla}
     if exists $self->{_zilla};
 
+  my $zilla;
   local $@;
-  $self->{_zilla} = eval { $self->zilla };
+  eval {
+    $zilla = $self->zilla;
+    1;
+  } or do {
+    my $e = $@;
+    if ($e !~ /^no configuration/) {
+      die $e;
+    }
+  };
+  $self->{_zilla} = $zilla;
 }
 
 sub _global_stashes ($self) {
