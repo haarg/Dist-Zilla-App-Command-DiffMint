@@ -91,7 +91,7 @@ sub execute ($self, $opt, $arg) {
   if (@$arg) {
     my @matched;
     for my $arg (@$arg) {
-      my $dir = $arg =~ s{/\z}{};
+      my $dir = $arg =~ s{/\z}{}r;
 
       if ($files{$arg}) {
         push @matched, $arg;
