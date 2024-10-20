@@ -63,19 +63,17 @@ sub execute ($self, $opt, $arg) {
     : $opt->color eq 'never'                          ? 0
     : die q[Error: option 'color' expects "always", "auto", or "never", not "] . $opt->color . qq["!\n];
 
-  my $out
-    = $opt->no_pager ? \*STDOUT
-    : !-t *STDOUT    ? \*STDOUT
-    : do {
-      local $ENV{LESS} = $ENV{LESS} || 'SRFX';
-      my $pager = $ENV{PAGER} || 'less';
-      if (open my $fh, '|-', $pager) {
-        $fh;
-      }
-      else {
-        \*STDOUT;
-      }
-    };
+  my $out;
+  if (!$opt->no_pager && !-t *STDOUT) {
+    my $pager = $ENV{PAGER} || 'less';
+    local $ENV{LESS} = $ENV{LESS} || 'SRFX';
+    open $out, '|-', $pager
+      or undef $out;
+  }
+  if (!$out) {
+    open $out, '>&=:raw', \*STDOUT
+      or die "Can't dup STDOOUT: $!";
+  }
 
   my $minter = $self->_minter($provider, $profile);
 
@@ -134,6 +132,9 @@ sub execute ($self, $opt, $arg) {
 
     next
       if !defined $diff;
+
+    require Encode;
+    $diff = Encode::encode($disk->{encoding}, $diff);
 
     if ($color) {
       print { $out } _colorize($diff);
