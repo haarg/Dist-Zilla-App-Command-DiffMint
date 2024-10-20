@@ -5,6 +5,8 @@ our $VERSION = 'v0.2.1';
 
 use Dist::Zilla::App -command;
 
+use Path::Tiny ();
+
 use namespace::autoclean;
 
 sub command_names { 'diff-mint' }
@@ -16,6 +18,30 @@ sub opt_spec { (
   [ 'reverse!',     'reverse diff' ],
   [ 'no-pager',     'avoid pager' ],
 ) }
+
+sub _zilla ($self) {
+  return $self->{_zilla}
+    if exists $self->{_zilla};
+
+  local $@;
+  $self->{_zilla} = eval { $self->zilla };
+}
+
+sub _global_stashes ($self) {
+  return $self->{_global_stashes}
+    if exists $self->{_global_stashes};
+
+  ## no critic (Subroutines::ProtectPrivateSubs)
+  return $self->{_global_stashes} = $self->app->_build_global_stashes;
+}
+
+sub _root ($self) {
+  return $self->{_root}
+    if exists $self->{_root};
+
+  my $zilla = $self->_zilla;
+  return $self->{_root} = $zilla ? $zilla->root : Path::Tiny->cwd;
+}
 
 sub execute ($self, $opt, $arg) {
   my $provider = $opt->provider;
@@ -50,7 +76,7 @@ sub execute ($self, $opt, $arg) {
 
   require Digest::SHA;
 
-  my $root = $self->zilla->root;
+  my $root = $self->_root;
 
   my %files = map +($_->name => $_), $minter->files->@*;
   my @files = map $_->name, $minter->files->@*;
@@ -153,12 +179,12 @@ sub _file_data ($self, $root, $name) {
 }
 
 sub _minter ($self, $opt_provider, $opt_profile) {
-  my $zilla = $self->zilla;
-
-  my $global_stash = $self->app->_build_global_stashes; ## no critic (Subroutines::ProtectPrivateSubs)
+  my $global_stash = $self->_global_stashes;
+  my $zilla = $self->_zilla;
 
   my $global_mint_stash = $global_stash->{'%Mint'};
-  my $dist_mint_stash = $zilla->stash_named('%Mint');
+  my $dist_mint_stash = $zilla && $zilla->stash_named('%Mint');
+  my $name = '';
 
   my $provider
     = $opt_provider
@@ -179,7 +205,7 @@ sub _minter ($self, $opt_provider, $opt_profile) {
     [ $provider, $profile ],
     {
       chrome  => $self->app->chrome,
-      name    => $zilla->name,
+      name    => $zilla ? $zilla->name : $self->_root->basename,
       _global_stashes => {
         %$global_stash,
         %$stashes,
@@ -189,21 +215,22 @@ sub _minter ($self, $opt_provider, $opt_profile) {
 }
 
 sub _stashes ($self) {
-  my $zilla = $self->zilla;
+  my $zilla = $self->_zilla;
   my $stashes = {};
-  if ($zilla->authors->@*) {
+  if ($zilla && $zilla->authors->@*) {
     $stashes->{'%User'} = $self->_authors_stash([ $zilla->authors->@* ]);
   }
 
-  require Dist::Zilla::Stash::Rights;
-  my $license = $zilla->license;
-  my $license_class = ref $license;
-  $license_class =~ s/^(Software::License::)?/$1 ? '' : '='/e;
-  $stashes->{'%Rights'} = Dist::Zilla::Stash::Rights->new(
-    copyright_holder => $license->holder,
-    copyright_year => $license->year,
-    license_class => $license_class,
-  );
+  if ($zilla and my $license = $zilla->license) {
+    require Dist::Zilla::Stash::Rights;
+    my $license_class = ref $license;
+    $license_class =~ s/^(Software::License::)?/$1 ? '' : '='/e;
+    $stashes->{'%Rights'} = Dist::Zilla::Stash::Rights->new(
+      copyright_holder => $license->holder,
+      copyright_year => $license->year,
+      license_class => $license_class,
+    );
+  }
 
   return $stashes;
 }
